@@ -1,0 +1,481 @@
+/* Färgerna kommer från en validerad palett: en violett skala för mängd och
+   ett violett/orange divergerande par för avvikelser. Partiernas egna färger
+   används bara som små markörer intill text, aldrig som enda informationsbärare.
+   Båda ramperna har jämna ljushetssteg (ΔL >= 0.09) och armarna i den
+   divergerande ramen ligger på samma ljushet, så att ett plus och ett lika
+   stort minus syns lika tydligt. Distrikt utan siffror fylls inte med en färg
+   ur någon ramp utan med ett prickmönster - annars går "mitten på skalan" och
+   "ingen uppgift" inte att skilja åt. */
+:root {
+  color-scheme: light;
+  --yta: #fcfcfb;
+  --plan: #f9f9f7;
+  --text: #0b0b0b;
+  --text2: #52514e;
+  --dampad: #898781;
+  --linje: #e1e0d9;
+  --kant: rgba(11, 11, 11, 0.10);
+  --seq1: #f4f1fc; --seq2: #cfc9f2; --seq3: #aca2e7; --seq4: #8b7ada;
+  --seq5: #6a5cb6; --seq6: #4a3e92; --seq7: #2e2170;
+  --div1: #bf4b00; --div2: #da8662; --div3: #e9beac; --div4: #f0efec;
+  --div5: #c4c5ec; --div6: #9594e3; --div7: #6b5fd6;
+  --fokus: #4a3aa7;
+  --del1: #2a78d6; --del2: #eb6834; --del3: #1baf7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --yta: #1a1a19;
+    --plan: #0d0d0d;
+    --text: #ffffff;
+    --text2: #c3c2b7;
+    --dampad: #898781;
+    --linje: #2c2c2a;
+    --kant: rgba(255, 255, 255, 0.10);
+    --seq1: #241a4d; --seq2: #3a2d72; --seq3: #51429a; --seq4: #6a58c4;
+    --seq5: #8c80d7; --seq6: #b1a8e9; --seq7: #d8cffa;
+    --div1: #d87339; --div2: #9d5e3c; --div3: #65483a; --div4: #383835;
+    --div5: #4e4c67; --div6: #6e66a4; --div7: #8f81e5;
+    --fokus: #8a7ddb;
+    --del1: #3987e5; --del2: #d95926; --del3: #199e70;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --yta: #1a1a19;
+  --plan: #0d0d0d;
+  --text: #ffffff;
+  --text2: #c3c2b7;
+  --dampad: #898781;
+  --linje: #2c2c2a;
+  --kant: rgba(255, 255, 255, 0.10);
+  --seq1: #241a4d; --seq2: #3a2d72; --seq3: #51429a; --seq4: #6a58c4;
+  --seq5: #8c80d7; --seq6: #b1a8e9; --seq7: #d8cffa;
+  --div1: #d87339; --div2: #9d5e3c; --div3: #65483a; --div4: #383835;
+  --div5: #4e4c67; --div6: #6e66a4; --div7: #8f81e5;
+  --fokus: #8a7ddb;
+  --del1: #3987e5; --del2: #d95926; --del3: #199e70;
+}
+
+* { box-sizing: border-box; }
+
+/* Låsvyn: allt annat göms tills datat är upplåst. */
+body.last > *:not(.lasruta) { display: none; }
+.lasruta {
+  position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: var(--plan);
+}
+/* display: flex ovan vinner annars över webbläsarens [hidden] - utan den här
+   raden blir låsrutan kvar på skärmen när sidan väl har låsts upp. */
+.lasruta[hidden] { display: none; }
+.laskort {
+  background: var(--yta); border: 1px solid var(--kant); border-radius: 12px;
+  padding: 24px 26px; max-width: 420px; width: 100%;
+}
+.laskort h2 { margin: 0 0 8px; font-size: 1.25rem; }
+.laskort p { color: var(--text2); font-size: 0.88rem; margin: 0 0 16px; }
+.laskort form { display: grid; gap: 8px; }
+.laskort label { font-size: 0.8rem; color: var(--dampad); }
+.laskort input {
+  font: inherit; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--kant); background: var(--plan); color: var(--text);
+}
+.laskort button {
+  font: inherit; padding: 8px 14px; border-radius: 8px; cursor: pointer; justify-self: start;
+  border: 1px solid var(--kant); background: var(--seq4); color: #fff;
+}
+.lasfel { min-height: 1.2em; margin: 12px 0 0 !important; color: var(--div1); font-size: 0.85rem; }
+.toppknappar { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
+
+body {
+  margin: 0;
+  padding: 0 16px 48px;
+  background: var(--plan);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+h1 { font-size: 1.45rem; margin: 0; }
+h2 { font-size: 1.05rem; margin: 24px 0 8px; }
+h3 { font-size: 0.95rem; margin: 16px 0 6px; }
+
+.topp {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; max-width: 1180px; margin: 0 auto; padding: 20px 0 12px;
+}
+.underrubrik { margin: 4px 0 0; color: var(--text2); font-size: 0.85rem; }
+.tema {
+  background: var(--yta); color: var(--text2); border: 1px solid var(--kant);
+  border-radius: 999px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer;
+}
+
+.kontroller {
+  max-width: 1180px; margin: 0 auto; display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+}
+.block {
+  background: var(--yta); border: 1px solid var(--kant); border-radius: 10px;
+  padding: 10px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 8px;
+  /* En fieldset är som standard minst så bred som sitt innehåll - den längsta
+     option-texten i en select - och sprängde då sin kolumn i rutnätet. */
+  min-width: 0;
+}
+/* Etiketter i en spalt, rullgardiner i en lika bred spalt bredvid. */
+.block.val { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; align-content: start; gap: 8px 10px; }
+.block.val label { display: contents; }
+.block.val select { margin-left: 0; min-width: 0; width: 100%; }
+.block legend { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dampad); padding: 0 4px; }
+.block label { font-size: 0.85rem; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+.block select {
+  margin-left: auto; background: var(--plan); color: var(--text);
+  border: 1px solid var(--kant); border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 0.85rem;
+}
+.kryss { cursor: pointer; }
+/* Reglage och kryssrutor i sidans violett i stället för webbläsarens blå. */
+input[type="range"], input[type="checkbox"] { accent-color: var(--fokus); }
+.reglage { display: grid !important; grid-template-columns: auto auto 1fr; align-items: center; font-size: 0.8rem; }
+.reglage input { grid-column: 1 / -1; }
+
+.partiknappar { display: flex; flex-wrap: wrap; gap: 6px; }
+.parti {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  border: 1px solid var(--kant); border-radius: 999px; padding: 4px 10px 4px 7px;
+  background: var(--plan); font-size: 0.85rem; color: var(--text2); user-select: none;
+}
+.parti input { position: absolute; opacity: 0; width: 0; height: 0; }
+.parti .prick { width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--kant); flex: none; }
+/* Texten är alltid i textfärg - partifärgen sitter bara i pricken. Gul text
+   på vit botten (SD) eller ljusgrön (MP) går inte att läsa. */
+.parti[data-vald="ja"] { background: var(--yta); color: var(--text); border-color: var(--text2); font-weight: 600; }
+.parti:focus-within { outline: 2px solid var(--fokus); outline-offset: 2px; }
+.snabbval { display: flex; flex-wrap: wrap; gap: 6px; }
+.snabbval button, .tabellverktyg button {
+  font: inherit; font-size: 0.8rem; padding: 3px 10px; cursor: pointer;
+  background: var(--plan); color: var(--text2); border: 1px solid var(--kant); border-radius: 999px;
+}
+.snabbval button:hover, .tabellverktyg button:hover { color: var(--text); }
+
+.flikar { max-width: 1180px; margin: 20px auto 0; display: flex; gap: 4px; border-bottom: 1px solid var(--linje); overflow-x: auto; }
+.flikar button { white-space: nowrap; }
+.flikar button {
+  font: inherit; font-size: 0.9rem; padding: 8px 14px; cursor: pointer;
+  background: none; border: none; border-bottom: 2px solid transparent; color: var(--text2);
+}
+.flikar button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--fokus); font-weight: 600; }
+
+main { max-width: 1180px; margin: 0 auto; }
+.sammanfattning { color: var(--text2); font-size: 0.9rem; margin: 14px 0; }
+.sammanfattning strong { color: var(--text); }
+
+.kartruta { margin: 0; background: var(--yta); border: 1px solid var(--kant); border-radius: 10px; padding: 12px; }
+.kartruta figcaption { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; }
+.kartyta { position: relative; }
+.zoomknappar { position: absolute; top: 8px; right: 8px; z-index: 4; display: flex; flex-direction: column; gap: 4px; }
+.zoomknappar button {
+  width: 30px; height: 30px; font: inherit; font-size: 1rem; line-height: 1; cursor: pointer;
+  background: var(--yta); color: var(--text2); border: 1px solid var(--kant); border-radius: 6px;
+}
+.zoomknappar button:hover { color: var(--text); }
+#karta { width: 100%; height: auto; display: block; touch-action: none; cursor: grab; }
+#karta.drar { cursor: grabbing; }
+#karta .distrikt { stroke: var(--yta); stroke-width: 1; vector-effect: non-scaling-stroke; cursor: pointer; }
+/* Markeringen ritas i ett eget lager ovanpå alla distrikt (se ritaKarta), så
+   att kanten blir lika tjock runt om: en ytfärgad ring under en textfärgad
+   linje syns mot både de ljusaste och de mörkaste stegen. */
+#karta .markering path { fill: none; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+#karta .markering .halo { stroke: var(--yta); stroke-width: 5; }
+#karta .markering .linje { stroke: var(--text); stroke-width: 2; }
+/* Alla distrikt som en enda bana underst: överallt utom längst ut täcks den av
+   distriktens egna fyllningar, så det som syns är kommunens ytterkant. Utan den
+   flyter ljusa gränsdistrikt ihop med sidan. */
+#karta .ytterkant {
+  fill: var(--dampad); stroke: var(--dampad); stroke-width: 3;
+  stroke-linejoin: round; vector-effect: non-scaling-stroke;
+}
+#karta .tat { fill: none; stroke: var(--text); stroke-width: 2; stroke-dasharray: 5 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+#karta .befolkning { fill: none; stroke: var(--text); stroke-opacity: 0.55; stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
+#karta .lokal { fill: var(--text); pointer-events: none; }
+#karta .lokalring { fill: var(--yta); stroke: var(--text); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
+/* Teckenstorlekarna sätts i användarkoordinater av skriptet, eftersom
+   kartans koordinatsystem är meter - annars blir texten mikroskopisk. */
+#karta text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 500;
+  fill: var(--text); paint-order: stroke; stroke: var(--yta); stroke-width: 0.3em; pointer-events: none; }
+#karta text.ort { font-weight: 700; }
+#karta text.lokaltext { fill: var(--text2); }
+#karta text.distriktnamn { fill: var(--text2); font-weight: 600; }
+/* Kampanjmärken: bokstaven för typen i en liten ruta. Fylld ruta = riktat till
+   de boende, bara ram = på en plats. Ytan och texten byter plats mellan de två,
+   så att skillnaden syns utan att bero på en färg. */
+#karta .kampanjmarke { cursor: help; }
+#karta .kampanjmarke rect { fill: var(--yta); stroke: var(--text); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+#karta .kampanjmarke text { fill: var(--text); stroke: none; font-weight: 700; }
+#karta .kampanjmarke.boende rect { fill: var(--text); stroke: var(--yta); }
+#karta .kampanjmarke.boende text { fill: var(--yta); }
+#karta .kampanjmarke:hover rect { stroke-width: 2.5; }
+
+.tooltip {
+  position: absolute; pointer-events: none; z-index: 5; max-width: 260px;
+  background: var(--yta); color: var(--text); border: 1px solid var(--kant);
+  border-radius: 8px; padding: 8px 10px; font-size: 0.82rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.tooltip b { display: block; margin-bottom: 3px; }
+.tooltip .rad { display: flex; justify-content: space-between; gap: 12px; color: var(--text2); }
+.tooltip .rad > span:last-child { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* Fastnålad ruta: samma ruta som vid hovring, men klickbar och utökad med
+   valresultatet. Den är bredare än hovringsrutan och rullar invändigt, så att
+   den ryms i kartytan även på små skärmar. */
+.tooltip.fast {
+  pointer-events: auto; max-width: min(420px, calc(100% - 16px));
+  max-height: 88%; overflow: auto; z-index: 6;
+}
+.tipshuvud { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.tipshuvud b { margin-bottom: 0; }
+.tipsknappar { display: flex; gap: 6px; flex: none; }
+.tipsknappar button {
+  font: inherit; font-size: 0.78rem; line-height: 1.3; padding: 2px 8px; cursor: pointer;
+  background: var(--plan); color: var(--text2); border: 1px solid var(--kant); border-radius: 999px;
+}
+.tipsknappar button:hover { color: var(--text); }
+.tooltip h4 { margin: 10px 0 0; font-size: 0.82rem; }
+.tipshuvud + .notis { margin: 1px 0 4px; }
+/* Tabellen ligger redan i en ram - rutan runt om räcker. */
+.tooltip .tabellyta { border: none; background: none; border-radius: 0; margin-top: 4px; }
+.tooltip table { font-size: 0.76rem; }
+.tooltip th, .tooltip td { padding: 3px 6px; }
+.tooltip thead th { cursor: default; background: var(--yta); }
+.tooltip .notis { font-size: 0.72rem; margin-top: 6px; }
+
+.teckenforklaring { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.78rem; color: var(--text2); }
+.skala { display: flex; align-items: flex-start; gap: 0; }
+/* Ändvärdena ska ligga i linje med färgrutorna, inte mitt i blocket som
+   brytpunktssiffrorna hänger under. */
+.teckenforklaring .slut { align-self: flex-start; line-height: 12px; }
+/* Stegen är olika breda i värde (kvantiler), så varje brytpunkt skrivs ut under
+   sin kant - annars går färgerna inte att läsa av. */
+.skala .steg { position: relative; width: 44px; height: 28px; }
+.skala .steg i { display: block; height: 12px; border: 1px solid var(--kant); border-right: none; }
+.skala .steg:last-child i { border-right: 1px solid var(--kant); }
+.skala .steg b {
+  position: absolute; right: 0; top: 15px; transform: translateX(50%);
+  font-weight: 400; font-size: 0.72rem; white-space: nowrap;
+  font-variant-numeric: tabular-nums; color: var(--dampad);
+}
+.forklaring { display: inline-flex; align-items: center; gap: 5px; }
+.radbrytning { flex-basis: 100%; height: 0; }
+.kampanjruta {
+  display: inline-block; min-width: 16px; padding: 0 3px; border-radius: 3px; text-align: center;
+  font-size: 0.72rem; font-weight: 700; line-height: 14px;
+  border: 1px solid var(--text); background: var(--yta); color: var(--text);
+}
+.kampanjruta.boende { background: var(--text); color: var(--yta); }
+.forklaring .ruta { width: 12px; height: 12px; border: 1px solid var(--kant); }
+.forklaring .ruta.ingendata {
+  border-color: var(--dampad);
+  background: var(--yta) radial-gradient(var(--dampad) 1.1px, transparent 1.2px) 0 0/5px 5px;
+}
+
+/* Tre spalter: sex listor blir två hela rader i stället för fyra plus två. */
+.topplistor { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); margin-top: 12px; }
+.topplista { background: var(--yta); border: 1px solid var(--kant); border-radius: 10px; padding: 10px 14px 14px; }
+.topplista h3 { margin: 0 0 6px; }
+.topplista ol { margin: 0; padding-left: 20px; font-size: 0.85rem; }
+.topplista li { margin: 0 -6px 0 0; padding: 1px 6px 1px 0; border-radius: 4px; }
+.topplista li:hover { background: var(--plan); color: var(--text); }
+.topplista .topprad { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.topplista .varde { flex: none; font-variant-numeric: tabular-nums; color: var(--text2); }
+
+.tabellverktyg { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 14px 0 10px; font-size: 0.85rem; color: var(--text2); }
+.tabellverktyg input, .tabellverktyg select {
+  font: inherit; background: var(--yta); color: var(--text);
+  border: 1px solid var(--kant); border-radius: 6px; padding: 4px 8px;
+}
+.tabellyta { overflow-x: auto; background: var(--yta); border: 1px solid var(--kant); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--linje); }
+th:first-child, td:first-child, th.vanster, td.vanster { text-align: left; }
+thead th { position: sticky; top: 0; background: var(--yta); color: var(--text2); font-weight: 600; cursor: pointer; z-index: 1; }
+thead th[aria-sort] { color: var(--text); }
+tbody tr:hover { background: var(--plan); }
+td.tal { font-variant-numeric: tabular-nums; }
+.uppskattad { border-bottom: 1px dashed var(--dampad); }
+.stapel { position: relative; }
+.stapel i { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 12px; border-radius: 0 4px 4px 0; background: var(--seq4); opacity: 0.55; }
+.stapel span { position: relative; }
+
+.valjdistrikt { display: flex; gap: 8px; align-items: center; margin: 14px 0; font-size: 0.9rem; color: var(--text2); }
+.valjdistrikt select, .rangordna select { font: inherit; background: var(--yta); color: var(--text); border: 1px solid var(--kant); border-radius: 6px; padding: 5px 8px; }
+.kort { background: var(--yta); border: 1px solid var(--kant); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+.kort > h2:first-child, .kort > h3:first-child { margin-top: 0; }
+.nyckeltal { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+/* Värdet står längst ned, så att en etikett som bryter över två rader inte
+   flyttar ned sitt värde ur linje med grannarnas. */
+.nyckeltal > div { background: var(--plan); border-radius: 8px; padding: 8px 10px; min-width: 0;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
+.nyckeltal .etikett { font-size: 0.75rem; color: var(--dampad); }
+.nyckeltal .varde { font-size: 1.25rem; font-weight: 600; }
+/* En rad förklaring under ett värde: vem ett mandat tas från, och liknande. */
+.undertext { display: block; font-size: 0.75rem; font-weight: 400; color: var(--text2); }
+td .undertext { display: inline; margin-left: 6px; }
+.notis { font-size: 0.8rem; color: var(--text2); margin: 8px 0 0; }
+
+.vikter { background: var(--yta); border: 1px solid var(--kant); border-radius: 10px; padding: 12px 16px; margin: 14px 0 12px; }
+/* En rad per vikt: namn, reglage och värde i tre spalter som är lika breda på
+   alla fyra raderna, så att reglagen börjar och slutar i linje. Spalterna är
+   fasta och inte auto - annars skulle det längsta namnet flytta de andra. */
+.vikter > label, .vikter > .viktrad {
+  display: grid; grid-template-columns: 17rem minmax(120px, 1fr) 3.5rem;
+  align-items: center; gap: 4px 14px;
+  font-size: 0.85rem; color: var(--text2); margin-top: 8px;
+}
+.vikter .etikett { line-height: 1.3; }
+.vikter input[type="range"] { width: 100%; margin: 0; }
+/* Siffrorna läses som en spalt, så de är högerställda med jämnbreda siffror. */
+.vikter output { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+.hjalp { font-size: 0.82rem; color: var(--text2); margin: 0; }
+.hjalp + .hjalp { margin-top: 8px; }
+.vikter > label.rangordna { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+.narliggande { border: 0; padding: 0; margin: 12px 0 0; }
+.viktrad .kryss { display: flex; align-items: center; gap: 8px; }
+.viktrad:has(#indexFilter:not(:checked)) input[type="range"] { opacity: 0.45; }
+#kampanjtabell th { white-space: normal; vertical-align: bottom; min-width: 4.5rem; }
+#kampanjtabell th:first-child { min-width: 0; }
+#kampanjtabell td .omrade { display: block; font-size: 0.75rem; color: var(--dampad); }
+#kampanjtabell td.stapel { min-width: 6rem; }
+/* Raden där rösterna inom räckhåll räcker till nästa mandat: ett streck under
+   och en etikett vid summan, så att listan läses som "hit och inte längre". */
+#kampanjtabell tr.malrad td { border-bottom: 2px solid var(--fokus); }
+.malmarke {
+  display: block; margin-top: 2px; font-size: 0.72rem; font-weight: 600; color: var(--fokus); white-space: nowrap;
+}
+#kampanjmal { margin: 4px 0 10px; }
+#kampanjmal strong { color: var(--text); }
+.narliggande legend { font-size: 0.85rem; color: var(--text2); padding: 0; margin-bottom: 6px; }
+
+/* Tabellceller vars förändring gäller en hel grupp omritade distrikt */
+td.grupp span, td.grupp { text-decoration: underline dotted var(--dampad); text-underline-offset: 3px; }
+
+/* Mandaten i kommunfullmäktige: partigruppens partier i fetstil, summaraden
+   för gruppen avskild med ett streck. */
+.mandatkort .nyckeltal { margin-top: 12px; }
+.mandatkort .tabellyta { margin-top: 12px; }
+.mandattabell .prick { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.mandattabell tr.igrupp td { font-weight: 600; color: var(--text); }
+.mandattabell tr.igrupp td:first-child { box-shadow: inset 3px 0 0 var(--fokus); }
+.mandattabell .summarad td { font-weight: 600; border-top: 2px solid var(--linje); }
+.mandattabell thead th { cursor: default; }
+
+/* Röstfliken: bidrag till förändringen, en rad per jämförelseenhet */
+#vy-roster .kort { margin-top: 12px; }
+.bidrag { margin-top: 10px; }
+.bidragsrad { display: grid; grid-template-columns: minmax(8rem, 16rem) 1fr 4rem; gap: 10px; align-items: center;
+  font-size: 0.8rem; min-height: 18px; }
+.bidragsrad .namn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); }
+.bidragsrad .summa { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+.bidragsrad:hover .namn { color: var(--text); }
+.bidragsrad:hover { background: var(--plan); }
+.bidragsstapel { position: relative; height: 12px; }
+.bidragsstapel .noll { position: absolute; top: -3px; bottom: -3px; border-left: 1px solid var(--dampad); }
+.bidragsstapel b { position: absolute; top: 0; height: 12px; }
+.bidragsstapel b.vaxt { background: var(--del1); }
+.bidragsstapel b.deltagande { background: var(--del2); }
+.bidragsstapel b.andel { background: var(--del3); }
+.bidragsstapel b.upps { background: var(--dampad); }
+.bidragsstapel b.forst { border-radius: 4px 0 0 4px; }
+.bidragsstapel b.sist { border-radius: 0 4px 4px 0; }
+.bidragsforklaring { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8rem; color: var(--text2); margin-top: 8px; }
+.bidragsforklaring i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+.bidragsrad.upps { border-top: 1px solid var(--linje); padding-top: 4px; margin-top: 4px; }
+.bidragstips { position: fixed; pointer-events: none; z-index: 20; background: var(--yta); border: 1px solid var(--kant);
+  border-radius: 8px; padding: 8px 10px; font-size: 0.8rem; box-shadow: 0 4px 14px rgba(0,0,0,0.12); max-width: 20rem; }
+.bidragstips .rad { display: flex; justify-content: space-between; gap: 14px; }
+.bidragstips .rad span:last-child { font-variant-numeric: tabular-nums; }
+
+/* Kampanjeffekten */
+#vy-effekt .kort, #vy-effekt .tabellyta { margin-top: 12px; }
+.effekttabell td.vanster { white-space: normal; min-width: 9rem; }
+.effekttabell .summarad td { font-weight: 600; border-top: 2px solid var(--linje); }
+.slumpband { color: var(--dampad); font-size: 0.78rem; }
+.bedomning { font-weight: 600; }
+.bedomning.plus { color: var(--div7); }
+.bedomning.minus { color: var(--div1); }
+.bedomning.svag, .bedomning.ingen { color: var(--text); font-weight: 400; }
+.bedomning.fa { color: var(--dampad); font-weight: 400; }
+/* Prövningen mot tidigare val: en rad under bedömningen i huvudtabellen, och
+   i prövningstabellen en kort bedömning under varje siffra. */
+.provning { display: block; min-width: 14rem; margin-top: 3px; font-size: 0.78rem; line-height: 1.35; color: var(--text2); }
+.provtabell td.typ { text-align: left; white-space: normal; min-width: 9rem; vertical-align: top; }
+.provtabell .kortbedomning { display: block; font-size: 0.75rem; color: var(--text2); }
+/* Kampanjen förra valet och den här: rubrikerna är långa, så de får bryta. */
+.jamforkampanj th { white-space: normal; vertical-align: bottom; min-width: 7.5rem; }
+.jamforkampanj th:first-child { min-width: 0; }
+/* Fem kolumner med siffra och bedömning: bedömningsraden får bryta, så att
+   tabellen ryms på en vanlig skärm. */
+.jamforkampanj td.tal { white-space: normal; min-width: 8rem; max-width: 12rem; vertical-align: top; }
+#effektval { margin: 14px 0 0; }
+
+/* Kampanjaktiviteterna i distriktsvyn, en spalt per kampanj. */
+.kampanjspalter { display: grid; gap: 4px 24px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.kampanjspalter h4 { margin: 4px 0 6px; font-size: 0.85rem; }
+.aktivitetslista { list-style: none; margin: 0; padding: 0; font-size: 0.85rem; }
+.aktivitetslista li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: baseline;
+  padding: 3px 0; border-bottom: 1px solid var(--linje); }
+.aktivitetslista li:last-child { border-bottom: none; }
+.aktivitetslista .plats { display: block; font-size: 0.75rem; color: var(--dampad); }
+.aktivitetslista .datum { color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.status { color: var(--dampad); font-weight: 400; }
+.remsor { margin-top: 10px; }
+.remsrad { display: grid; grid-template-columns: 13rem 1fr; gap: 12px; align-items: center; min-height: 26px; }
+.remsnamn { font-size: 0.8rem; color: var(--text2); line-height: 1.2; }
+.remsa { position: relative; height: 22px; border-bottom: 1px solid var(--linje); }
+.remsa .noll { position: absolute; top: 0; bottom: 0; border-left: 1px dashed var(--dampad); }
+.remsa i, .remsforklaring i {
+  position: absolute; top: 50%; border-radius: 50%; transform: translate(-50%, -50%);
+}
+.remsa i.ororda, .remsforklaring i.ororda { width: 6px; height: 6px; background: var(--dampad); opacity: 0.55; }
+.remsa i.granne, .remsforklaring i.granne { width: 9px; height: 9px; border: 2px solid var(--seq6); background: var(--yta); }
+.remsa i.direkt, .remsforklaring i.direkt { width: 10px; height: 10px; background: var(--seq6); box-shadow: 0 0 0 2px var(--yta); }
+/* Hade aktiviteten bara i förra valets kampanj - inte med i jämförelsen. */
+.remsa i.bara, .remsforklaring i.bara { width: 8px; height: 8px; border: 1.5px solid var(--dampad); background: var(--yta); }
+.remsa b.medel, .remsforklaring b.medel {
+  position: absolute; top: 1px; bottom: 1px; width: 2px; margin-left: -1px; background: var(--text); border-radius: 1px;
+}
+.remsrad.axel .remsa { border-bottom: none; height: 18px; }
+.remsa .bock { position: absolute; top: 2px; transform: translateX(-50%); font-size: 0.72rem; color: var(--dampad); font-variant-numeric: tabular-nums; }
+.remsforklaring { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; color: var(--text2); margin: 8px 0 0; }
+.remsforklaring span { display: inline-flex; align-items: center; gap: 6px; }
+.remsforklaring i, .remsforklaring b.medel { position: relative; top: auto; transform: none; display: inline-block; }
+.remsforklaring b.medel { height: 12px; margin: 0; }
+
+footer { max-width: 1180px; margin: 32px auto 0; font-size: 0.8rem; color: var(--text2); }
+footer summary { cursor: pointer; }
+.metod { margin: 8px 0 0; }
+.metod p { margin: 6px 0; }
+.kalla { margin-top: 10px; color: var(--dampad); }
+
+@media (max-width: 640px) {
+  .topp { flex-direction: column; }
+  th, td { padding: 5px 7px; }
+  /* För smalt för tre spalter: namn och värde på en rad, reglaget under. */
+  .vikter > label, .vikter > .viktrad { grid-template-columns: 1fr auto; gap: 2px 10px; }
+  .vikter .etikett { grid-column: 1; }
+  .vikter output { grid-column: 2; }
+  .vikter input[type="range"] { grid-column: 1 / -1; grid-row: 2; }
+  .remsrad { grid-template-columns: 1fr; gap: 2px; }
+  /* Smalare steg så att skalan och ändvärdena ryms på en rad. */
+  .skala .steg { width: 30px; }
+  /* Namn och summa på en rad, stapeln under i full bredd. Med tre spalter tog
+     namnet hela bredden på en telefon och staplarna krympte till ingenting. */
+  .bidragsrad { grid-template-columns: minmax(0, 1fr) auto; gap: 1px 10px; padding: 3px 0; }
+  .bidragsrad .namn { grid-column: 1; grid-row: 1; }
+  .bidragsrad .summa { grid-column: 2; grid-row: 1; }
+  .bidragsrad .bidragsstapel { grid-column: 1 / -1; grid-row: 2; }
+}
+
+@media print {
+  body { background: #fff; padding: 0; }
+  .kontroller, .flikar, .tema, .tabellverktyg, .vikter, .zoomknappar, .tooltip { display: none !important; }
+  .vy[hidden] { display: none; }
+  .kartruta, .topplista, .tabellyta { border: 1px solid #ccc; break-inside: avoid; }
+}

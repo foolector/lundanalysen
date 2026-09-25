@@ -1,0 +1,3 @@
+# Sidan ska inte hamna i sökmotorer.
+User-agent: *
+Disallow: /

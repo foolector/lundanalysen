@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Valdistrikt i Lund</title>
+<meta name="description" content="Valresultat per valdistrikt i Lunds kommun 2018-2026 - underlag för Miljöpartiets eftervalsanalys och kampanjplanering.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="lasruta" id="lasruta" hidden>
+  <div class="laskort">
+    <h2>Valdistrikt i Lund</h2>
+    <p>Sidan kräver lösenord</p>
+    <form id="lasform">
+      <label for="lasenord">Lösenord</label>
+      <input type="password" id="lasenord" autocomplete="current-password" required>
+      <button type="submit">Lås upp</button>
+    </form>
+    <p class="lasfel" id="lasfel" role="status"></p>
+  </div>
+</div>
+
+<header class="topp">
+  <div>
+    <h1>Valdistrikt i Lund</h1>
+    <p class="underrubrik" id="meta">Underlag för eftervalsanalys och kampanjplanering</p>
+  </div>
+  <div class="toppknappar">
+    <button type="button" id="lasknapp" class="tema" hidden>Lås sidan</button>
+    <button type="button" id="rensaknapp" class="tema" title="Tar bort lösenord och sparade inställningar ur den här webbläsaren">Rensa allt och lås sidan</button>
+    <button type="button" id="tema" class="tema" aria-label="Byt färgtema">Tema: auto</button>
+  </div>
+</header>
+
+<section class="kontroller" aria-label="Inställningar">
+  <fieldset class="block partier">
+    <legend>Partier som räknas ihop</legend>
+    <div class="partiknappar" id="partier"></div>
+    <div class="snabbval">
+      <button type="button" data-snabb="MP">Bara MP</button>
+      <button type="button" data-snabb="MP,V,S">MP+V+S</button>
+      <button type="button" data-snabb="alla">Alla</button>
+      <button type="button" data-snabb="">Rensa</button>
+    </div>
+  </fieldset>
+
+  <fieldset class="block val">
+    <legend>Val och år</legend>
+    <label>Val
+      <select id="valtyp"></select>
+    </label>
+    <label>År
+      <select id="ar"></select>
+    </label>
+    <label>Jämför med
+      <select id="jmfar"></select>
+    </label>
+    <label>Kartutsnitt
+      <select id="utsnitt"></select>
+    </label>
+    <label>Färglägg efter
+      <select id="matt">
+        <option value="andel">Andel av giltiga röster</option>
+        <option value="index">Index mot kommunsnittet</option>
+        <option value="forandring">Förändring i procentenheter</option>
+        <option value="indexforandring">Förändring i index</option>
+        <option value="roster">Antal röster</option>
+        <option value="rosterforandring">Förändring i antal röster</option>
+        <option value="delade">Kommunval minus riksdagsval (röster)</option>
+        <option value="tathet">Röstberättigade per km²</option>
+        <option value="valdeltagande">Valdeltagande</option>
+      </select>
+    </label>
+  </fieldset>
+
+  <fieldset class="block">
+    <legend>Lager på kartan</legend>
+    <label class="kryss"><input type="checkbox" id="lagerBefolkning"> Befolkningsmängd (cirklar)</label>
+    <label class="kryss"><input type="checkbox" id="lagerTathet"> Tät bebyggelse</label>
+    <label class="reglage">Gräns <output id="tathetVarde"></output> röstberättigade/km²
+      <input type="range" id="tathetGrans" min="100" max="6000" step="100">
+    </label>
+    <label class="kryss"><input type="checkbox" id="lagerCentrum"> Lokala centrum</label>
+    <label class="kryss"><input type="checkbox" id="lagerVallokaler"> Vallokaler</label>
+    <label class="kryss"><input type="checkbox" id="lagerKampanjer"> Kampanjaktiviteter</label>
+    <label class="kryss"><input type="checkbox" id="lagerOrter" checked> Ortsnamn</label>
+    <label class="kryss"><input type="checkbox" id="visaUppskattade" checked> Visa uppskattade värden</label>
+  </fieldset>
+</section>
+
+<nav class="flikar" role="tablist" aria-label="Vyer">
+  <button type="button" role="tab" data-flik="karta" aria-selected="true">Karta</button>
+  <button type="button" role="tab" data-flik="roster" aria-selected="false">Röster och mandat</button>
+  <button type="button" role="tab" data-flik="tabell" aria-selected="false">Tabell</button>
+  <button type="button" role="tab" data-flik="distrikt" aria-selected="false">Distrikt</button>
+  <button type="button" role="tab" data-flik="kampanj" aria-selected="false">Kampanjprioritering</button>
+  <button type="button" role="tab" data-flik="effekt" aria-selected="false">Kampanjeffekt</button>
+</nav>
+
+<main>
+  <p class="sammanfattning" id="sammanfattning"></p>
+
+  <section id="vy-karta" class="vy" role="tabpanel">
+    <figure class="kartruta">
+      <figcaption id="kartrubrik"></figcaption>
+      <div class="kartyta">
+        <div class="zoomknappar">
+          <button type="button" id="zoomIn" aria-label="Zooma in">+</button>
+          <button type="button" id="zoomUt" aria-label="Zooma ut">−</button>
+          <button type="button" id="zoomAter" aria-label="Återställ kartan">⟲</button>
+        </div>
+        <svg id="karta" role="img" aria-labelledby="kartrubrik"></svg>
+        <div class="tooltip" id="tooltip" hidden></div>
+      </div>
+      <div class="teckenforklaring" id="teckenforklaring"></div>
+    </figure>
+    <div class="topplistor" id="topplistor"></div>
+  </section>
+
+  <section id="vy-roster" class="vy" role="tabpanel" hidden>
+    <div id="rosterinnehall"></div>
+  </section>
+
+  <section id="vy-tabell" class="vy" role="tabpanel" hidden>
+    <div class="tabellverktyg">
+      <label>Sök distrikt <input type="search" id="sok" placeholder="t.ex. Veberöd"></label>
+      <label>Område <select id="ortfilter"></select></label>
+      <button type="button" id="exportera">Exportera CSV</button>
+    </div>
+    <div class="tabellyta"><table id="tabell"></table></div>
+  </section>
+
+  <section id="vy-distrikt" class="vy" role="tabpanel" hidden>
+    <label class="valjdistrikt">Distrikt <select id="distriktval"></select></label>
+    <div id="distriktinnehall"></div>
+  </section>
+
+  <section id="vy-kampanj" class="vy" role="tabpanel" hidden>
+    <div class="vikter">
+      <p class="hjalp">Röster inom räckhåll i varje distrikt: de som inte röstade, gånger <span class="gruppnamn"></span>:s andel bland dem som röstade, plus väljarna hos närliggande partier. Ställ in hur stor del av var och en som kampanjen kan tänkas nå - talen är antaganden, men de gör olika distrikt jämförbara i röster.</p>
+      <label><span class="etikett">Av dem som inte röstade kan vi få</span><input type="range" id="mobil" min="0" max="30" step="1"><output id="mobilv" for="mobil"></output></label>
+      <label><span class="etikett">Av närliggande partiers väljare kan vi övertyga</span><input type="range" id="overtyga" min="0" max="10" step="0.5"><output id="overtygav" for="overtyga"></output></label>
+      <fieldset class="narliggande"><legend>Närliggande partier</legend><div class="partiknappar" id="narliggande"></div></fieldset>
+      <div class="viktrad" title="Index 100 = samma andel som i kommunen i stort"><label class="kryss etikett"><input type="checkbox" id="indexFilter"><span>Bara distrikt där <span class="gruppnamn"></span> har index över</span></label><input type="range" id="indexGrans" min="50" max="200" step="5" aria-label="Indexgräns"><output id="indexVarde" for="indexGrans"></output></div>
+      <label class="rangordna">Rangordna efter
+        <select id="rangordning">
+          <option value="totalt">Röster inom räckhåll</option>
+          <option value="perkm2">Röster inom räckhåll per km² (för dörrknackning)</option>
+        </select>
+      </label>
+    </div>
+    <p class="notis" id="kampanjsumma"></p>
+    <p class="notis" id="kampanjmal"></p>
+    <div class="tabellyta"><table id="kampanjtabell"></table></div>
+  </section>
+
+  <section id="vy-effekt" class="vy" role="tabpanel" hidden>
+    <label class="valjdistrikt" id="effektval">Kampanjen inför valet <select id="effektkampanj"></select></label>
+    <div id="effektinnehall"></div>
+  </section>
+</main>
+
+<footer>
+  <details>
+    <summary>Om siffrorna och metoden</summary>
+    <div class="metod" id="metod"></div>
+  </details>
+  <p class="kalla" id="kalla"></p>
+</footer>
+
+<script src="data/lund.js"></script>
+<script src="las.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
